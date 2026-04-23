@@ -18,17 +18,17 @@ bypass unique chat mode +
 Шрифт ASCII-арта +
 /me colored +
 colored nicknames mentions +
+BTTV emotes effects(!) +
+admin chat messages+
+/part /join +
+7tv websocket proxy +
 
 
-
-BTTV emotes effects(!)
-/part /join? /pasta, other commands, 
-
+CHECK perf + cold init!!!!! 
+addons 
+/pasta, other commands, 
 Поддержка кастом смайлов в названии трансляции?
 Поддержка zero-wide emotes в закрепе
-
-
-
 RTE badges for staff
 settings - query keys + translation (Перенести все наши дополнения в один модуль)
 subscription info + site links
