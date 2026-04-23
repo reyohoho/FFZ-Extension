@@ -1,10 +1,10 @@
 {
 	"manifest_version": 3,
-	"name": "FrankerFaceZ",
-	"short_name": "FFZ",
+	"name": "Reyohoho Twitch Extension(Nightly)",
+	"short_name": "RTE_Nightly",
 	"version": "__DEV__",
 
-	"description": "The Twitch enhancement suite. Get custom emotes and tons of new features you'll never want to go without.",
+	"description": "",
 
 	"icons": {
 		"128": "icon128.png",
@@ -12,7 +12,7 @@
 		"48": "icon48.png"
 	},
 
-	"homepage_url": "http://www.frankerfacez.com",
+	"homepage_url": "https://ext.rte.net.ru/",
 
 	"action": { },
 	
@@ -21,14 +21,12 @@
 	],
 
 	"host_permissions": [
-		"*://*.twitch.tv/*",
-		"*://*.frankerfacez.com/*"
+		"*://*.twitch.tv/*"
 	],
 
 	"externally_connectable": {
 		"matches": [
-			"*://*.twitch.tv/*",
-			"*://*.youtube.com/*"
+			"*://*.twitch.tv/*"
 		]
 	},
 	
@@ -36,8 +34,7 @@
 		{
 			"resources": ["web/*"],
 			"matches": [
-				"*://*.twitch.tv/*",
-				"*://*.youtube.com/*"
+				"*://*.twitch.tv/*"
 			]
 		}
 	],
@@ -69,7 +66,11 @@
 
 	"browser_specific_settings": {
 		"gecko": {
-			"id": "frankerfacez@frankerfacez.com"
+			"id": "rtenightly@proton.me",
+			"data_collection_permissions": {
+				"required": ["none"],
+				"optional": []
+			}
 		}
 	}
 }

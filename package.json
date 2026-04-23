@@ -1,7 +1,13 @@
 {
   "name": "ffz-extension-manifest-v3",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "build": "pnpm --filter ./client build:ext && pnpm --filter ./addons build:ext && node scripts/copy-output.js && node scripts/update-manifest.js && node scripts/build-userscript.js",
+    "build:ext": "pnpm run build",
+    "build:chrome": "pnpm --filter ./client build:ext && pnpm --filter ./addons build:ext && node scripts/copy-output.js chrome && node scripts/update-manifest.js",
+    "build:firefox": "pnpm --filter ./client build:ext && pnpm --filter ./addons build:ext && node scripts/copy-output.js firefox && node scripts/update-manifest.js",
+    "build:userscript": "node scripts/build-userscript.js"
+  },
   "dependencies": {
     "web-ext": "^8.3.0"
   }

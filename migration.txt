@@ -1,0 +1,33 @@
+Плеер:
+Счетчик онайна - количество в чате в скобках +
+Зеркало плеера +
+rte badges +
+rte paints +
+rte friends(send activity and show list in sidebar menu) +-(disable in sidebar, notifications..)+
+Fix chatters count style +
+MMB = open 7tv/etc page +
+RMB = paste emote to chat +
+Copy and send button(if btn manager dont have) + export settings and set as deafult
+Moderation slider+
+
+Custom butons show follows +
+
+Chat refresh emotes bypass cache
+
+ZW 7TV emotes show with border and on top in lists
+bypass unique chat mode
+Уведомления об упоминаниях во вкладке
+Шрифт ASCII-арта
+Поддержка кастом смайлов в названии трансляции?
+Поддержка zero-wide emotes в закрепе
+
+BTTV emotes effects(!)
+/part /join? /pasta, other commands, /me colored
+RTE badges for staff
+move theater mode before fullscreen button
+settings - query keys + translation
+CHECK perf + cold init!!!!! 
+_
+
+links preview...
+kick.com/vkplay

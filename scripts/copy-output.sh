@@ -1,25 +1,41 @@
 #!/bin/bash -e
 
-# Copy build output
-mkdir -p dist/web
+# Build into a staging area first, then copy to each target directory.
+STAGE=dist/_stage
 
-cp -r client/dist/* dist/web/
-cp -r addons/dist/* dist/web/
-cp -rf src/* dist/
+# Clean previous build
+rm -rf dist/chrome dist/firefox dist/userscript "$STAGE"
+
+# Stage the shared web assets
+mkdir -p "$STAGE/web"
+
+# Clean stale hashed addon manifests from the target
+rm -f "$STAGE/web"/addons.*.json
+rm -f "$STAGE/web"/addons.json
+
+cp -r client/dist/* "$STAGE/web/"
+cp -r addons/dist/* "$STAGE/web/"
+cp -rf src/* "$STAGE/"
 
 # Remove some files that we don't want to include
 # in our packaged extensions.
-rm -rf dist/web/bom
-rm -rf dist/web/addons-bom
-rm dist/web/manifest.json
-rm dist/web/addons/manifest.json
+rm -rf "$STAGE/web/bom"
+rm -rf "$STAGE/web/addons-bom"
+rm -f "$STAGE/web/manifest.json"
+rm -f "$STAGE/web/addons/manifest.json"
 
-# Find the addons.*.json file and rename it.
-shopt -s nocasematch
-for file in dist/web/*; do
-  if [[ "$(basename "$file")" =~ ^addons\.[a-z0-9]+\.json$ ]]; then
-    mv "$file" dist/web/addons.json
-    break
-  fi
-done
-shopt -u nocasematch
+# Pick the newest addons.HASH.json (multiple may exist from prior builds).
+latest=$(ls -t "$STAGE/web"/addons.*.json 2>/dev/null | head -1)
+if [ -n "$latest" ]; then
+  mv "$latest" "$STAGE/web/addons.json"
+fi
+
+# Clean up any remaining old hashed addons manifests
+rm -f "$STAGE/web"/addons.*.json
+
+# Copy staged output to Chrome and Firefox target directories
+cp -r "$STAGE" dist/chrome
+cp -r "$STAGE" dist/firefox
+
+# Clean up staging area
+rm -rf "$STAGE"
