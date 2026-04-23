@@ -14,13 +14,15 @@ Chat refresh emotes bypass cache +
 ZW 7TV emotes show with border and on top in lists +
 player ovarlay buttons+
 First Message+
-
 bypass unique chat mode +
+Шрифт ASCII-арта +
+/me colored +
+colored nicknames mentions +
 
-Шрифт ASCII-арта
-colored nicknames 
+
+
 BTTV emotes effects(!)
-/part /join? /pasta, other commands, /me colored
+/part /join? /pasta, other commands, 
 
 Поддержка кастом смайлов в названии трансляции?
 Поддержка zero-wide emotes в закрепе
