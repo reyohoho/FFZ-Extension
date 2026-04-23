@@ -15,20 +15,24 @@ ZW 7TV emotes show with border and on top in lists +
 player ovarlay buttons+
 First Message+
 
-bypass unique chat mode
+bypass unique chat mode +
+
 Шрифт ASCII-арта
-Поддержка кастом смайлов в названии трансляции?
-Поддержка zero-wide emotes в закрепе
 colored nicknames 
 BTTV emotes effects(!)
 /part /join? /pasta, other commands, /me colored
 
+Поддержка кастом смайлов в названии трансляции?
+Поддержка zero-wide emotes в закрепе
+
+
 
 RTE badges for staff
-settings - query keys + translation
+settings - query keys + translation (Перенести все наши дополнения в один модуль)
 subscription info + site links
 RTE icon -- emote button
 CHECK perf + cold init!!!!! 
+
 _
 
 links preview...
