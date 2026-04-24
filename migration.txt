@@ -1,41 +1,19 @@
-Плеер:
-Счетчик онайна - количество в чате в скобках +
-Зеркало плеера +
-rte badges +
-rte paints +
-rte friends(send activity and show list in sidebar menu) +-(disable in sidebar, notifications..)+
-Fix chatters count style +
-MMB = open 7tv/etc page +
-RMB = paste emote to chat +
-Copy and send button(if btn manager dont have) + export settings and set as deafult
-Moderation slider+
-Custom butons show follows +
-Chat refresh emotes bypass cache +
-ZW 7TV emotes show with border and on top in lists +
-player ovarlay buttons+
-First Message+
-bypass unique chat mode +
-Шрифт ASCII-арта +
-/me colored +
-colored nicknames mentions +
-BTTV emotes effects(!) +
-admin chat messages+
-/part /join +
-7tv websocket proxy +
-
-
-CHECK perf + cold init!!!!! 
-addons 
+bttv modifiers
+Перенести аддоны на сервер
 /pasta, other commands, 
 Поддержка кастом смайлов в названии трансляции?
 Поддержка zero-wide emotes в закрепе
 RTE badges for staff
 settings - query keys + translation (Перенести все наши дополнения в один модуль)
-subscription info + site links
+Subscription info + site links + links to github
 RTE icon -- emote button
+regexp filter(only digits, etc)
+Опция для скрытия большого количества тэгов
+add notification about rabase to FFZ
 CHECK perf + cold init!!!!! 
+import some settings from old RTE
+use better default settings like in RTE
 
-_
-
+-----------------
 links preview...
 kick.com/vkplay

@@ -47,3 +47,53 @@ node scripts/update-manifest.js
 
 # Generate the userscript
 node scripts/build-userscript.js
+
+# Package versioned archives for distribution (Chrome/Firefox builds and
+# a source archive required by Mozilla AMO for reproducible validation).
+if [ -n "${FFZ_VERSION:-}" ] && [ -n "${FFZ_BUILD:-}" ]; then
+	VERSION="${FFZ_VERSION}.${FFZ_BUILD}"
+else
+	VERSION="$(node -p "require('./client/package.json').version" 2>/dev/null || echo 4.0.0)"
+fi
+
+RELEASE_DIR="dist/releases"
+mkdir -p "$RELEASE_DIR"
+rm -f "$RELEASE_DIR"/*.zip
+
+CHROME_ZIP="ffz-chrome-v${VERSION}.zip"
+FIREFOX_ZIP="ffz-firefox-v${VERSION}.zip"
+SOURCE_ZIP="ffz-source-v${VERSION}.zip"
+
+(cd dist/chrome  && zip -r -9 -X "../releases/${CHROME_ZIP}"  .)
+(cd dist/firefox && zip -r -9 -X "../releases/${FIREFOX_ZIP}" .)
+
+# Source archive for Firefox (AMO) validation. Must allow reviewers to
+# reproduce the build, so include build scripts, env file and the vendored
+# submodule sources while excluding build artefacts, caches and VCS data.
+rm -f "${RELEASE_DIR}/${SOURCE_ZIP}"
+zip -r -9 -X "${RELEASE_DIR}/${SOURCE_ZIP}" \
+	build.sh \
+	ffz_env \
+	package.json \
+	pnpm-lock.yaml \
+	README.md \
+	.gitignore \
+	.gitmodules \
+	scripts \
+	src \
+	client \
+	addons \
+	-x \
+	"*/node_modules/*" \
+	"*/dist/*" \
+	"*/.git/*" \
+	"*/.git" \
+	"*/.github/*" \
+	"*/.idea/*" \
+	"*/.DS_Store" \
+	"*/venv/*" \
+	"*/__pycache__/*" \
+	"*.log"
+
+echo "Built archives in ${RELEASE_DIR}:"
+ls -lh "${RELEASE_DIR}"
