@@ -1,19 +1,26 @@
-bttv modifiers
-Перенести аддоны на сервер
-/pasta, other commands, 
+bttv modifiers+
+/pasta, other commands+
+RTE icon -- emote button+
+
 Поддержка кастом смайлов в названии трансляции?
 Поддержка zero-wide emotes в закрепе
 RTE badges for staff
 settings - query keys + translation (Перенести все наши дополнения в один модуль)
 Subscription info + site links + links to github
-RTE icon -- emote button
 regexp filter(only digits, etc)
 Опция для скрытия большого количества тэгов
 add notification about rabase to FFZ
+RTE badges double bug sometimes
 CHECK perf + cold init!!!!! 
+Отвал настроек?
 import some settings from old RTE
 use better default settings like in RTE
 
 -----------------
+Перенести аддоны на сервер
 links preview...
 kick.com/vkplay
+
+
+RTE backend: 
+id bug(only digits without nickname)
