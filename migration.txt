@@ -3,11 +3,9 @@ bttv modifiers+
 RTE icon -- emote button+
 RTE badges double bug sometimes+
 FFZ selected provider storage not showed(also not used?) - changed priority to local storae -> IDB -> cache :: need CHECK
+Поддержка emotes + zero-wide  в закрепе+
+RTE badges for staff+
 
-copy text with emotes(select) - wrong
-Поддержка кастом смайлов в названии трансляции?
-Поддержка zero-wide emotes в закрепе+
-RTE badges for staff
 settings - query keys + translation (Перенести все наши дополнения в один модуль)
 Subscription info + site links + links to github
 regexp filter(only digits, etc)
@@ -16,10 +14,11 @@ add notification about rabase to FFZ
 
 
 CHECK perf + cold init!!!!! 
+Поддержка кастом смайлов в названии трансляции?
 Отвал настроек?
 import some settings from old RTE
 use better default settings like in RTE
-
+copy text with emotes(select) - требуется расследование
 -----------------
 Перенести аддоны на сервер
 links preview...
