@@ -2,6 +2,8 @@ bttv modifiers+
 /pasta, other commands+
 RTE icon -- emote button+
 
+RTE badges double bug sometimes
+
 Поддержка кастом смайлов в названии трансляции?
 Поддержка zero-wide emotes в закрепе
 RTE badges for staff
@@ -10,7 +12,8 @@ Subscription info + site links + links to github
 regexp filter(only digits, etc)
 Опция для скрытия большого количества тэгов
 add notification about rabase to FFZ
-RTE badges double bug sometimes
+
+
 CHECK perf + cold init!!!!! 
 Отвал настроек?
 import some settings from old RTE
