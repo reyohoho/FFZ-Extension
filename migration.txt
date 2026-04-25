@@ -1,11 +1,11 @@
 bttv modifiers+
 /pasta, other commands+
 RTE icon -- emote button+
+RTE badges double bug sometimes+
 
-RTE badges double bug sometimes
-
+copy text with emotes(select) - wrong
 Поддержка кастом смайлов в названии трансляции?
-Поддержка zero-wide emotes в закрепе
+Поддержка zero-wide emotes в закрепе+
 RTE badges for staff
 settings - query keys + translation (Перенести все наши дополнения в один модуль)
 Subscription info + site links + links to github
