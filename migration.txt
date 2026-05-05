@@ -6,24 +6,21 @@ FFZ selected provider storage not showed(also not used?) - changed priority to l
 Поддержка emotes + zero-wide  в закрепе+
 RTE badges for staff+
 remove bttv modifier on render () ?
+Subscription info + site links + links to github+
 
-Subscription info + site links + links to github
-add notification about rabase to FFZ
+add notification about rebase to FFZ
 settings - query keys + translation
+use better default settings like in RTE + disable default links preview + import some settings from old RTE
+Перенести аддоны на сервер
+links preview... - виды отображения + прокси для ютуба если нету
+CHECK perf + cold init!!!!! 
 
 Разнести все наши похожие дополнения по модулям(объединить)
+copy text with emotes(select) - требуется расследование
 regexp filter(only digits, etc)
 Опция для скрытия большого количества тэгов
-disable default links preview
-use better default settings like in RTE
-CHECK perf + cold init!!!!! 
-Перенести аддоны на сервер
-import some settings from old RTE
-
-copy text with emotes(select) - требуется расследование
 Поддержка кастом смайлов в названии трансляции?
 Отвал настроек?
-links preview...
 kick.com/vkplay
 
 
