@@ -8,7 +8,6 @@ RTE badges for staff+
 remove bttv modifier on render () ?
 Subscription info + site links + links to github+
 add notification about rebase to FFZ+
-
 settings - query keys + translation+
   - локальный загрузчик локалей в client/src/i18n.js + client/src/i18n-local/
   - ru-RU словарь с переводами всех reyohoho-* настроек (auto-derived setting.entry.*)
@@ -17,11 +16,15 @@ settings - query keys + translation+
   - reyohoho-user-tools action title/description/tooltip переведены через i18n.t()
   - русский поиск настроек теперь работает (search_terms собирает локализованные строки)
 
-links preview... - виды отображения + прокси для ютуба если нету
+links preview... - виды отображения+ + прокси для ютуба если нету
+  - стиль карточки (FFZ) и встроенного <img>/<video> (RTE) выбираются через chat.rich.media-previews-style
+  - размеры встроенного предпросмотра -- chat.rich.media-previews-max-width / -max-height
+  - Discord / ytimg / ibb / 7TV CDN / kappa.lol / i.imgur.com: картинки через `http://cdn.rte.net.ru/<оригинальный URL>` (mod `rte_image_cdn_proxy.js`)
+
 use better default settings like in RTE + disable default links preview + import some settings from old RTE(preview, mention sound, deleted messages style)
 Перенести аддоны на сервер
 CHECK perf + cold init!!!!! 
-Отвал настроек?
+Сброс настроек check
 
 Разнести все наши похожие дополнения по модулям(объединить)
 copy text with emotes(select) - требуется расследование
