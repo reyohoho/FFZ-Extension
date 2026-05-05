@@ -15,13 +15,21 @@ settings - query keys + translation+
   - reyohoho-chat-commands команды/notice/aliases переведены через i18n.t()
   - reyohoho-user-tools action title/description/tooltip переведены через i18n.t()
   - русский поиск настроек теперь работает (search_terms собирает локализованные строки)
-
 links preview... - виды отображения+ + прокси для ютуба если нету
   - стиль карточки (FFZ) и встроенного <img>/<video> (RTE) выбираются через chat.rich.media-previews-style
   - размеры встроенного предпросмотра -- chat.rich.media-previews-max-width / -max-height
-  - Discord / ytimg / ibb / 7TV CDN / kappa.lol / i.imgur.com: картинки через `http://cdn.rte.net.ru/<оригинальный URL>` (mod `rte_image_cdn_proxy.js`)
+  - Discord / ytimg / ibb / 7TV CDN / kappa.lol / i.imgur.com: картинки через `http://cdn.rte.net.ru/<оригинальный URL>` (mod `rte_image_cdn_proxy.js`)+
 
-use better default settings like in RTE + disable default links preview + import some settings from old RTE(preview, mention sound, deleted messages style)
+use better default settings like in RTE + disable default links preview + import some settings from old RTE(preview, mention sound, deleted messages style)+
+  - localStorage prefix RTE-FFZ:setting:, IDB RTE-FFZ, BroadcastChannel rte-ffz-settings, bridge id rte-ffz-settings-bridge (utilities/rte_storage_constants.ts)
+  - первый запуск: client/src/rte_first_run.ts вызывается из main.ts ДО `new FrankerFaceZ()`
+    * флаг RTE-FFZ:first-run-v1 в localStorage гасит повторный прогон
+    * мигрируются: linkPreview -> chat.rich.media-previews, friendsEnabled -> addon.reyohoho-friends.enabled, chatSwipe -> addon.reyohoho-mod-slider.enabled, deletedMessages (0->false, 1->LEGACY, 2->BRIEF, 3->DETAILED) -> chat.filtering.display-deleted, reyohoho_wtv_mention_sound -> ffzap.core.enable_highlight_sound, highlightKeywords -> chat.filtering.highlight-basic-(terms|users|badges) (записи с channels пропускаются)
+    * дефолты из ffz-settings (2026-5-5).json применяются с force_all (миграция всё равно перекрывает дефолт), без unlocked-effects, без digit-only из highlight-basic-blocked
+Вынести отдельно regexp для цифр чтобы уже был пункт+
+  - chat.filtering.block-digit-only-messages (default false), Chat > Filtering > Block, инжектится в __filter:block-terms из самой настройки
+
+
 Перенести аддоны на сервер
 CHECK perf + cold init!!!!! 
 Сброс настроек check
@@ -30,6 +38,7 @@ CHECK perf + cold init!!!!!
 copy text with emotes(select) - требуется расследование
 Опция для скрытия большого количества тэгов
 Поддержка кастом смайлов в названии трансляции?
+В закрепах смайлы
 
 kick.com/vkplay
 
