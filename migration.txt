@@ -7,20 +7,27 @@ FFZ selected provider storage not showed(also not used?) - changed priority to l
 RTE badges for staff+
 remove bttv modifier on render () ?
 Subscription info + site links + links to github+
+add notification about rebase to FFZ+
 
-add notification about rebase to FFZ
-settings - query keys + translation
-use better default settings like in RTE + disable default links preview + import some settings from old RTE
-Перенести аддоны на сервер
+settings - query keys + translation+
+  - локальный загрузчик локалей в client/src/i18n.js + client/src/i18n-local/
+  - ru-RU словарь с переводами всех reyohoho-* настроек (auto-derived setting.entry.*)
+  - reyohoho-anon-chat NOTICE_* + tab-command descriptions переведены через i18n.t()
+  - reyohoho-chat-commands команды/notice/aliases переведены через i18n.t()
+  - reyohoho-user-tools action title/description/tooltip переведены через i18n.t()
+  - русский поиск настроек теперь работает (search_terms собирает локализованные строки)
+
 links preview... - виды отображения + прокси для ютуба если нету
+use better default settings like in RTE + disable default links preview + import some settings from old RTE(preview, mention sound, deleted messages style)
+Перенести аддоны на сервер
 CHECK perf + cold init!!!!! 
+Отвал настроек?
 
 Разнести все наши похожие дополнения по модулям(объединить)
 copy text with emotes(select) - требуется расследование
-regexp filter(only digits, etc)
 Опция для скрытия большого количества тэгов
 Поддержка кастом смайлов в названии трансляции?
-Отвал настроек?
+
 kick.com/vkplay
 
 
