@@ -30,7 +30,7 @@ use better default settings like in RTE + disable default links preview + import
   - chat.filtering.block-digit-only-messages (default false), Chat > Filtering > Block, инжектится в __filter:block-terms из самой настройки
 
 
-Перенести аддоны на сервер
+
 CHECK perf + cold init!!!!! 
 Сброс настроек check
 
@@ -39,6 +39,7 @@ copy text with emotes(select) - требуется расследование
 Опция для скрытия большого количества тэгов
 Поддержка кастом смайлов в названии трансляции?
 В закрепах смайлы
+Перенести аддоны на сервер(для UserScript версии)
 
 kick.com/vkplay
 
