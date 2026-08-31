@@ -1,0 +1,125 @@
+name: Publish Status
+
+on:
+  workflow_dispatch:
+    inputs:
+      interaction_token:
+        description: Discord interaction token (set by the publish bot)
+        type: string
+        default: ''
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Extension Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Uses Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Clone Source Repositories
+        run: |
+          git clone https://github.com/FrankerFaceZ/FrankerFaceZ.git client
+          git clone https://github.com/FrankerFaceZ/Add-Ons.git addons
+
+      - name: Check Chrome Stable Status
+        id: chrome
+        continue-on-error: true
+        env:
+          CWS_SERVICE_ACCOUNT_KEY: ${{ secrets.CWS_SERVICE_ACCOUNT_KEY }}
+          CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: fadndhdgpmmaapbmfcknlfgcflmmmieb
+        run: node scripts/cws-client.js status
+
+      - name: Check AMO Status
+        id: amo
+        continue-on-error: true
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: node scripts/amo-client.js status
+
+      - name: Count Unshipped Changes
+        id: unshipped
+        run: |
+          count_channel() {
+            local channel=$1
+            local key=$2
+            local tag=$(git tag -l "${channel}/*" | sort -V | tail -n1)
+            if [ -z "$tag" ]; then
+              echo "${key}_version=none recorded" >> $GITHUB_OUTPUT
+              echo "${key}_count=?" >> $GITHUB_OUTPUT
+              return
+            fi
+            git tag -l --format='%(contents)' "$tag" > /tmp/meta.json
+            local version=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/meta.json','utf8')).version")
+            local cbase=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/meta.json','utf8')).client_commit")
+            local abase=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/meta.json','utf8')).addons_commit")
+            local ccount=$(git -C client rev-list --count --no-merges "$cbase..HEAD" 2>/dev/null || echo '?')
+            local acount=$(git -C addons rev-list --count --no-merges "$abase..HEAD" 2>/dev/null || echo '?')
+            echo "${key}_version=$version" >> $GITHUB_OUTPUT
+            echo "${key}_count=client: $ccount, add-ons: $acount" >> $GITHUB_OUTPUT
+          }
+          count_channel chrome-stable chrome
+          count_channel firefox-stable firefox
+
+      - name: Compose and Send Report
+        env:
+          CHROME_PUBLISHED: ${{ steps.chrome.outputs.published_version }}
+          CHROME_PENDING: ${{ steps.chrome.outputs.pending_version }}
+          CHROME_OK: ${{ steps.chrome.outcome }}
+          AMO_LATEST: ${{ steps.amo.outputs.latest_version }}
+          AMO_STATUS: ${{ steps.amo.outputs.latest_status }}
+          AMO_UNREVIEWED: ${{ steps.amo.outputs.unreviewed_count }}
+          AMO_OK: ${{ steps.amo.outcome }}
+          CHROME_SUBMITTED: ${{ steps.unshipped.outputs.chrome_version }}
+          CHROME_UNSHIPPED: ${{ steps.unshipped.outputs.chrome_count }}
+          FIREFOX_SUBMITTED: ${{ steps.unshipped.outputs.firefox_version }}
+          FIREFOX_UNSHIPPED: ${{ steps.unshipped.outputs.firefox_count }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
+          INTERACTION_TOKEN: ${{ inputs.interaction_token }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$CHROME_OK" = "success" ]; then
+            CHROME_BLOCK="live: **${CHROME_PUBLISHED:-none}**"
+            if [ -n "$CHROME_PENDING" ]; then
+              CHROME_BLOCK="$CHROME_BLOCK, in review: **$CHROME_PENDING**"
+            else
+              CHROME_BLOCK="$CHROME_BLOCK, nothing in review"
+            fi
+          else
+            CHROME_BLOCK="⚠️ status check failed"
+          fi
+
+          if [ "$AMO_OK" = "success" ]; then
+            AMO_BLOCK="latest: **${AMO_LATEST:-none}** (${AMO_STATUS:-unknown}), unreviewed: ${AMO_UNREVIEWED:-0}"
+          else
+            AMO_BLOCK="⚠️ status check failed"
+          fi
+
+          DESC=$(printf '**Chrome**: %s\nLast submitted: %s\nUnshipped commits — %s\n\n**Firefox**: %s\nLast submitted: %s\nUnshipped commits — %s\n\n[View Run](<%s>)' \
+            "$CHROME_BLOCK" "${CHROME_SUBMITTED:-none}" "${CHROME_UNSHIPPED:-?}" \
+            "$AMO_BLOCK" "${FIREFOX_SUBMITTED:-none}" "${FIREFOX_UNSHIPPED:-?}" \
+            "$RUN_URL")
+
+          PAYLOAD=$(jq -n --arg desc "$DESC" \
+            '{embeds: [{title: "📦 Publish Status", description: $desc, color: 3447003}]}')
+
+          SENT=""
+          if [ -n "$INTERACTION_TOKEN" ] && [ -n "$DISCORD_APP_ID" ]; then
+            if curl -sf -X PATCH \
+              "https://discord.com/api/v10/webhooks/$DISCORD_APP_ID/$INTERACTION_TOKEN/messages/@original" \
+              -H 'Content-Type: application/json' -d "$PAYLOAD" > /dev/null; then
+              SENT=yes
+            fi
+          fi
+
+          if [ -z "$SENT" ]; then
+            curl -sf -H 'Content-Type: application/json' -d "$PAYLOAD" "$WEBHOOK_URL"
+          fi

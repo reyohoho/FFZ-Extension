@@ -9,6 +9,9 @@ Licensed under the Apache License, Version 2.0. See LICENSE.
 The build process is intended to be performed using CI via GitHub Actions.
 However, the individual steps can be performed manually should you wish.
 
+For how builds are published to the Chrome Web Store and Firefox Add-Ons
+site, see PUBLISHING.md.
+
 
 Requirements
 ============

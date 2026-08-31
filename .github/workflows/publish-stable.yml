@@ -1,0 +1,420 @@
+name: Publish Stable
+
+on:
+  workflow_dispatch:
+    inputs:
+      channels:
+        description: Which store(s) to publish to
+        type: choice
+        options: [both, chrome, firefox]
+        default: both
+      force:
+        description: Cancel a pending Chrome review / re-submit an already-submitted version
+        type: boolean
+        default: false
+      preview:
+        description: Preview only — report what would ship without submitting anything
+        type: boolean
+        default: false
+      interaction_token:
+        description: Discord interaction token (set by the publish bot)
+        type: string
+        default: ''
+
+concurrency:
+  group: publish-stable
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-reusable.yml
+    permissions:
+      id-token: write
+      actions: read
+      contents: write
+      attestations: write
+    with:
+      discord_report: false
+    secrets: inherit
+
+  prepare:
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      chrome_base_version: ${{ steps.baselines.outputs.chrome_base_version }}
+      firefox_base_version: ${{ steps.baselines.outputs.firefox_base_version }}
+      chrome_already: ${{ steps.baselines.outputs.chrome_already }}
+      firefox_already: ${{ steps.baselines.outputs.firefox_already }}
+      chrome_changes: ${{ steps.changelogs.outputs.chrome_changes }}
+      firefox_changes: ${{ steps.changelogs.outputs.firefox_changes }}
+    steps:
+      - name: Checkout Extension Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Uses Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Clone Source Repositories
+        run: |
+          git clone https://github.com/FrankerFaceZ/FrankerFaceZ.git client
+          git clone https://github.com/FrankerFaceZ/Add-Ons.git addons
+
+      - name: Read Channel Baselines
+        id: baselines
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          read_channel() {
+            local channel=$1
+            local key=$2
+            local tag=$(git tag -l "${channel}/*" | sort -V | tail -n1)
+            if [ -z "$tag" ]; then
+              echo "No previous submission tag for ${channel}."
+              echo "${key}_already=false" >> $GITHUB_OUTPUT
+              return
+            fi
+            git tag -l --format='%(contents)' "$tag" > "/tmp/${key}-meta.json"
+            local base_version=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/${key}-meta.json','utf8')).version")
+            echo "Latest ${channel} submission: ${base_version}"
+            echo "${key}_base_version=${base_version}" >> $GITHUB_OUTPUT
+            if [ "$base_version" = "$VERSION" ]; then
+              echo "${key}_already=true" >> $GITHUB_OUTPUT
+            else
+              echo "${key}_already=false" >> $GITHUB_OUTPUT
+            fi
+          }
+          read_channel chrome-stable chrome
+          read_channel firefox-stable firefox
+
+      - name: Generate Changelogs
+        id: changelogs
+        env:
+          CLIENT_HEAD: ${{ needs.build.outputs.client_commit }}
+          ADDONS_HEAD: ${{ needs.build.outputs.addons_commit }}
+        run: |
+          gen() {
+            local key=$1
+            local client_base=""
+            local addons_base=""
+            if [ -f "/tmp/${key}-meta.json" ]; then
+              client_base=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/${key}-meta.json','utf8')).client_commit")
+              addons_base=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/${key}-meta.json','utf8')).addons_commit")
+            fi
+            node scripts/changelog.js \
+              --client-dir client --addons-dir addons \
+              --client-base "$client_base" --addons-base "$addons_base" \
+              --client-head "$CLIENT_HEAD" --addons-head "$ADDONS_HEAD" \
+              --out "${key}-changelog.md" --out-short "${key}-changelog-short.txt"
+            echo "${key}_changes=$(grep -c '^- ' "${key}-changelog.md" || true)" >> $GITHUB_OUTPUT
+          }
+          gen chrome
+          gen firefox
+
+      - name: Upload Changelogs
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelogs
+          path: |
+            chrome-changelog.md
+            chrome-changelog-short.txt
+            firefox-changelog.md
+            firefox-changelog-short.txt
+
+  chrome:
+    runs-on: ubuntu-latest
+    needs: [build, prepare]
+    if: ${{ inputs.channels == 'both' || inputs.channels == 'chrome' }}
+    permissions:
+      contents: write
+    outputs:
+      outcome: ${{ steps.outcome.outputs.outcome }}
+      pending_version: ${{ steps.status.outputs.pending_version }}
+      published_version: ${{ steps.status.outputs.published_version }}
+    env:
+      CWS_SERVICE_ACCOUNT_KEY: ${{ secrets.CWS_SERVICE_ACCOUNT_KEY }}
+      CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+      CWS_EXTENSION_ID: fadndhdgpmmaapbmfcknlfgcflmmmieb
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Checkout Extension Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Uses Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check Store Status
+        id: status
+        run: node scripts/cws-client.js status
+
+      - name: Decide Outcome
+        id: outcome
+        env:
+          ALREADY: ${{ needs.prepare.outputs.chrome_already }}
+          PENDING: ${{ steps.status.outputs.pending }}
+        run: |
+          if [ "${{ inputs.preview }}" = "true" ]; then
+            echo "outcome=preview" >> $GITHUB_OUTPUT
+          elif [ "$ALREADY" = "true" ] && [ "${{ inputs.force }}" != "true" ]; then
+            echo "outcome=already-submitted" >> $GITHUB_OUTPUT
+          elif [ "$PENDING" = "true" ] && [ "${{ inputs.force }}" != "true" ]; then
+            echo "outcome=pending-review" >> $GITHUB_OUTPUT
+          else
+            echo "outcome=publish" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Cancel Pending Submission
+        if: ${{ steps.outcome.outputs.outcome == 'publish' && steps.status.outputs.pending == 'true' }}
+        run: node scripts/cws-client.js cancel
+
+      - name: Download Extension Artifact
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: extension
+
+      - name: Download Changelogs
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: changelogs
+
+      - name: Upload to Chrome Web Store
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        run: node scripts/cws-client.js upload --file frankerfacez-extension-*.zip
+
+      - name: Publish on Chrome Web Store
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        run: node scripts/cws-client.js publish
+
+      - name: Record Submission (Tag + Release)
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLIENT_COMMIT: ${{ needs.build.outputs.client_commit }}
+          ADDONS_COMMIT: ${{ needs.build.outputs.addons_commit }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          META=$(jq -n --arg v "$VERSION" --arg c "$CLIENT_COMMIT" --arg a "$ADDONS_COMMIT" \
+            '{version: $v, client_commit: $c, addons_commit: $a, submitted_at: (now | todate)}')
+          # Replace the tag if force re-submitting the same version.
+          git tag -d "chrome-stable/$VERSION" 2>/dev/null || true
+          git push origin ":refs/tags/chrome-stable/$VERSION" 2>/dev/null || true
+          git tag -a "chrome-stable/$VERSION" -m "$META"
+          git push origin "chrome-stable/$VERSION"
+          gh release delete "chrome-stable/$VERSION" --yes 2>/dev/null || true
+          gh release create "chrome-stable/$VERSION" \
+            --title "Chrome Stable $VERSION" \
+            --notes-file chrome-changelog.md \
+            frankerfacez-extension-*.zip
+
+  firefox:
+    runs-on: ubuntu-latest
+    needs: [build, prepare]
+    if: ${{ inputs.channels == 'both' || inputs.channels == 'firefox' }}
+    permissions:
+      contents: write
+    outputs:
+      outcome: ${{ steps.outcome.outputs.outcome }}
+      amo_version: ${{ steps.version.outputs.version }}
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Checkout Extension Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Uses Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Decide Outcome
+        id: outcome
+        env:
+          ALREADY: ${{ needs.prepare.outputs.firefox_already }}
+        run: |
+          if [ "${{ inputs.preview }}" = "true" ]; then
+            echo "outcome=preview" >> $GITHUB_OUTPUT
+          elif [ "$ALREADY" = "true" ] && [ "${{ inputs.force }}" != "true" ]; then
+            echo "outcome=already-submitted" >> $GITHUB_OUTPUT
+          else
+            echo "outcome=publish" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download Extension Artifact
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: extension
+
+      - name: Download Source Archive
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: source-zip
+
+      - name: Download Changelogs
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: changelogs
+
+      - name: Upload to AMO
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        id: upload
+        run: node scripts/amo-client.js upload --file frankerfacez-extension-*.zip
+
+      - name: Write Approval Notes
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        run: |
+          cat > approval-notes.txt << 'EOF'
+          This extension is built from public sources. A complete source archive
+          is attached to this version. To build: unpack the archive, then run
+          ./build.sh (requires node 22+ and pnpm 10+). The unpacked extension
+          will be produced in the dist folder, matching this file. See README.md
+          in the archive for full details.
+
+          Sources: https://github.com/FrankerFaceZ/FrankerFaceZ and
+          https://github.com/FrankerFaceZ/Add-Ons
+          EOF
+
+      - name: Create Version on AMO
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        id: version
+        run: |
+          node scripts/amo-client.js create-version \
+            --upload "${{ steps.upload.outputs.upload_uuid }}" \
+            --release-notes-file firefox-changelog-short.txt \
+            --approval-notes-file approval-notes.txt
+
+      - name: Attach Source Archive
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        run: |
+          node scripts/amo-client.js attach-source \
+            --version "${{ steps.version.outputs.version_id }}" \
+            --file frankerfacez-source-*.zip
+
+      - name: Record Submission (Tag + Release)
+        if: ${{ steps.outcome.outputs.outcome == 'publish' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLIENT_COMMIT: ${{ needs.build.outputs.client_commit }}
+          ADDONS_COMMIT: ${{ needs.build.outputs.addons_commit }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          META=$(jq -n --arg v "$VERSION" --arg c "$CLIENT_COMMIT" --arg a "$ADDONS_COMMIT" \
+            '{version: $v, client_commit: $c, addons_commit: $a, submitted_at: (now | todate)}')
+          git tag -d "firefox-stable/$VERSION" 2>/dev/null || true
+          git push origin ":refs/tags/firefox-stable/$VERSION" 2>/dev/null || true
+          git tag -a "firefox-stable/$VERSION" -m "$META"
+          git push origin "firefox-stable/$VERSION"
+          gh release delete "firefox-stable/$VERSION" --yes 2>/dev/null || true
+          gh release create "firefox-stable/$VERSION" \
+            --title "Firefox Stable $VERSION" \
+            --notes-file firefox-changelog.md \
+            frankerfacez-extension-*.zip frankerfacez-source-*.zip
+
+  report:
+    runs-on: ubuntu-latest
+    needs: [build, prepare, chrome, firefox]
+    if: ${{ always() }}
+    steps:
+      - name: Download Changelogs
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: changelogs
+
+      - name: Compose and Send Report
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          CHROME_RESULT: ${{ needs.chrome.result }}
+          CHROME_OUTCOME: ${{ needs.chrome.outputs.outcome }}
+          CHROME_PENDING: ${{ needs.chrome.outputs.pending_version }}
+          CHROME_PUBLISHED: ${{ needs.chrome.outputs.published_version }}
+          FIREFOX_RESULT: ${{ needs.firefox.result }}
+          FIREFOX_OUTCOME: ${{ needs.firefox.outputs.outcome }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
+          INTERACTION_TOKEN: ${{ inputs.interaction_token }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # The build/prepare stages run with Discord reporting disabled, so
+          # their failures must be reported here or the run fails silently.
+          if [ "$BUILD_RESULT" != "success" ] || [ "$PREPARE_RESULT" != "success" ]; then
+            STAGE=$([ "$BUILD_RESULT" != "success" ] && echo build || echo prepare)
+            PAYLOAD=$(jq -n --arg desc "The **$STAGE** stage failed before anything was submitted. [View Run](<$RUN_URL>)" \
+              '{embeds: [{title: "❌ Stable Publish Failed", description: $desc, color: 15158332}]}')
+            curl -sf -H 'Content-Type: application/json' -d "$PAYLOAD" "$WEBHOOK_URL"
+            if [ -n "$INTERACTION_TOKEN" ] && [ -n "$DISCORD_APP_ID" ]; then
+              curl -s -X PATCH \
+                "https://discord.com/api/v10/webhooks/$DISCORD_APP_ID/$INTERACTION_TOKEN/messages/@original" \
+                -H 'Content-Type: application/json' -d "$PAYLOAD" || true
+            fi
+            exit 0
+          fi
+
+          describe() {
+            local result=$1
+            local outcome=$2
+            if [ "$result" = "skipped" ]; then echo "⏭️ not requested"
+            elif [ "$result" = "failure" ]; then echo "❌ FAILED (check the run logs)"
+            elif [ "$outcome" = "publish" ]; then echo "✅ submitted"
+            elif [ "$outcome" = "preview" ]; then echo "👁️ preview (not submitted)"
+            elif [ "$outcome" = "already-submitted" ]; then echo "⏭️ version already submitted (use force to re-submit)"
+            elif [ "$outcome" = "pending-review" ]; then echo "⛔ blocked: a submission is pending review (use force to cancel + replace it)"
+            else echo "❓ $result/$outcome"
+            fi
+          }
+
+          CHROME_LINE=$(describe "$CHROME_RESULT" "$CHROME_OUTCOME")
+          FIREFOX_LINE=$(describe "$FIREFOX_RESULT" "$FIREFOX_OUTCOME")
+
+          if [ "$CHROME_RESULT" = "failure" ] || [ "$FIREFOX_RESULT" = "failure" ]; then
+            COLOR=15158332
+            TITLE="❌ Stable Publish Failed"
+          elif [ "${{ inputs.preview }}" = "true" ]; then
+            COLOR=3447003
+            TITLE="👁️ Stable Publish Preview"
+          else
+            COLOR=3066993
+            TITLE="✅ Stable Publish"
+          fi
+
+          CHANGELOG=$(head -c 1800 chrome-changelog.md)
+
+          DESC=$(printf '**Version**: %s\n**Chrome**: %s\n**Firefox**: %s\n\n**Chrome store state**: live %s%s\n\n%s\n\n[View Run](<%s>)' \
+            "$VERSION" "$CHROME_LINE" "$FIREFOX_LINE" \
+            "${CHROME_PUBLISHED:-unknown}" \
+            "${CHROME_PENDING:+, pending review: $CHROME_PENDING}" \
+            "$CHANGELOG" "$RUN_URL")
+
+          PAYLOAD=$(jq -n --arg title "$TITLE" --arg desc "$DESC" --argjson color "$COLOR" \
+            '{embeds: [{title: $title, description: $desc, color: $color}]}')
+
+          curl -sf -H 'Content-Type: application/json' -d "$PAYLOAD" "$WEBHOOK_URL"
+
+          # Best-effort: update the Discord slash-command reply, if this run
+          # was started by the bot and the interaction token is still valid
+          # (they expire after 15 minutes; the webhook post above is the
+          # reliable channel).
+          if [ -n "$INTERACTION_TOKEN" ] && [ -n "$DISCORD_APP_ID" ]; then
+            curl -s -X PATCH \
+              "https://discord.com/api/v10/webhooks/$DISCORD_APP_ID/$INTERACTION_TOKEN/messages/@original" \
+              -H 'Content-Type: application/json' -d "$PAYLOAD" || true
+          fi
