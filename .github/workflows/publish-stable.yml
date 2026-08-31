@@ -349,23 +349,34 @@ jobs:
           CHROME_PUBLISHED: ${{ needs.chrome.outputs.published_version }}
           FIREFOX_RESULT: ${{ needs.firefox.result }}
           FIREFOX_OUTCOME: ${{ needs.firefox.outputs.outcome }}
+          PREVIEW: ${{ inputs.preview }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
           INTERACTION_TOKEN: ${{ inputs.interaction_token }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # Previews report back where the command was used; real publish
+          # results go to the update channel webhook. Falls back to the
+          # webhook when the interaction token is missing or expired
+          # (they only live 15 minutes).
+          send_report() {
+            if [ "$PREVIEW" = "true" ] && [ -n "$INTERACTION_TOKEN" ] && [ -n "$DISCORD_APP_ID" ]; then
+              if curl -sf -X PATCH \
+                "https://discord.com/api/v10/webhooks/$DISCORD_APP_ID/$INTERACTION_TOKEN/messages/@original" \
+                -H 'Content-Type: application/json' -d "$PAYLOAD" > /dev/null; then
+                return 0
+              fi
+            fi
+            curl -sf -H 'Content-Type: application/json' -d "$PAYLOAD" "$WEBHOOK_URL"
+          }
+
           # The build/prepare stages run with Discord reporting disabled, so
           # their failures must be reported here or the run fails silently.
           if [ "$BUILD_RESULT" != "success" ] || [ "$PREPARE_RESULT" != "success" ]; then
             STAGE=$([ "$BUILD_RESULT" != "success" ] && echo build || echo prepare)
             PAYLOAD=$(jq -n --arg desc "The **$STAGE** stage failed before anything was submitted. [View Run](<$RUN_URL>)" \
               '{embeds: [{title: "❌ Stable Publish Failed", description: $desc, color: 15158332}]}')
-            curl -sf -H 'Content-Type: application/json' -d "$PAYLOAD" "$WEBHOOK_URL"
-            if [ -n "$INTERACTION_TOKEN" ] && [ -n "$DISCORD_APP_ID" ]; then
-              curl -s -X PATCH \
-                "https://discord.com/api/v10/webhooks/$DISCORD_APP_ID/$INTERACTION_TOKEN/messages/@original" \
-                -H 'Content-Type: application/json' -d "$PAYLOAD" || true
-            fi
+            send_report
             exit 0
           fi
 
@@ -407,14 +418,4 @@ jobs:
           PAYLOAD=$(jq -n --arg title "$TITLE" --arg desc "$DESC" --argjson color "$COLOR" \
             '{embeds: [{title: $title, description: $desc, color: $color}]}')
 
-          curl -sf -H 'Content-Type: application/json' -d "$PAYLOAD" "$WEBHOOK_URL"
-
-          # Best-effort: update the Discord slash-command reply, if this run
-          # was started by the bot and the interaction token is still valid
-          # (they expire after 15 minutes; the webhook post above is the
-          # reliable channel).
-          if [ -n "$INTERACTION_TOKEN" ] && [ -n "$DISCORD_APP_ID" ]; then
-            curl -s -X PATCH \
-              "https://discord.com/api/v10/webhooks/$DISCORD_APP_ID/$INTERACTION_TOKEN/messages/@original" \
-              -H 'Content-Type: application/json' -d "$PAYLOAD" || true
-          fi
+          send_report
