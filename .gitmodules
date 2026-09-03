@@ -1,6 +1,6 @@
 [submodule "addons"]
 	path = addons
-	url = https://github.com/FrankerFaceZ/Add-Ons
+	url = https://github.com/reyohoho/FFZ-Add-Ons
 [submodule "client"]
 	path = client
-	url = https://github.com/FrankerFaceZ/FrankerFaceZ
+	url = https://github.com/reyohoho/FrankerFaceZ
