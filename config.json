@@ -362,7 +362,6 @@
             "addon-changelog.smokemotes",
             "addon-changelog.smm2-links",
             "addon-changelog.screenshotter",
-            "addon-changelog.reyohoho-user-tools",
             "addon-changelog.reyohoho-mod-slider",
             "addon-changelog.reyohoho-friends",
             "addon-changelog.reyohoho-emotes-proxy",
@@ -402,7 +401,6 @@
             "addon-changelog.accurate-timestamps",
             "addon-changelog.ModTools",
             "addon-changelog.7tv-emotes",
-            "addon.reyohoho-user-tools.enabled",
             "addon.reyohoho-mod-slider.enabled",
             "addon.reyohoho-emote-actions.mmb_open_page",
             "addon.reyohoho-emote-actions.rmb_insert_code",
@@ -445,19 +443,6 @@
             "ffzap.core.highlight_sound_types"
         ],
         "p: 0:chat.filtering.highlight-mentions": true,
-        "chat.actions.hover": [
-            {
-                "v": {
-                    "action": "addon.reyohoho-user-tools.follows",
-                    "appearance": {
-                        "type": "icon",
-                        "icon": "ffz-i-link-ext"
-                    },
-                    "options": {},
-                    "display": {}
-                }
-            }
-        ],
         "p: 0:chat.actions.hover": [
             {
                 "v": {
@@ -472,4 +457,4 @@
                     }"},"display":{},"ctx":"hover"},"id":"1777096309292-0.9656660781511698-0"},{"v":{"action":"chat","appearance":{"type":"text","text":"C"},"ctx":"hover","options":{"command":"{
                         {message.text
                         }
-                    }"},"display":{}},"id":"1777097707347-0.42712167435926307-0"}],"unlocked-effects":["64e3b31920cb0d25d950a9f9","65cbe7dbaed093b2eaf87c65","6468f7acaee1f7f47567708e","6468f8d1aee1f7f4756770cf","6468f89caee1f7f4756770c2","6468f845aee1f7f47567709b","6468f869aee1f7f4756770a8","6468f883aee1f7f4756770b5","662953eeea369c0ece39eb93",720508,720509,720729,723890],"p: 0:ffzap.core.enable_highlight_sound":true,"addons.enabled":["reyohoho-user-tools","reyohoho-mod-slider","reyohoho-friends","reyohoho-emotes-proxy","reyohoho-emote-actions","reyohoho-chat-commands","reyohoho-bypass-unique-chat","reyohoho-ascii-art-font","reyohoho-anon-chat","ffzap-bttv","7tv-emotes","ffzap-core"],"cfg-collapsed":["chat.emote_menu"],"p: 0:ffzap.core.highlight_sound_prevent_own_channel":true,"agreed-tos":["YouTube"]}}
+                    }"},"display":{}},"id":"1777097707347-0.42712167435926307-0"}],"unlocked-effects":["64e3b31920cb0d25d950a9f9","65cbe7dbaed093b2eaf87c65","6468f7acaee1f7f47567708e","6468f8d1aee1f7f4756770cf","6468f89caee1f7f4756770c2","6468f845aee1f7f47567709b","6468f869aee1f7f4756770a8","6468f883aee1f7f4756770b5","662953eeea369c0ece39eb93",720508,720509,720729,723890],"p: 0:ffzap.core.enable_highlight_sound":true,"addons.enabled":["reyohoho-mod-slider","reyohoho-friends","reyohoho-emotes-proxy","reyohoho-emote-actions","reyohoho-chat-commands","reyohoho-bypass-unique-chat","reyohoho-ascii-art-font","reyohoho-anon-chat","ffzap-bttv","7tv-emotes","ffzap-core"],"cfg-collapsed":["chat.emote_menu"],"p: 0:ffzap.core.highlight_sound_prevent_own_channel":true,"agreed-tos":["YouTube"]}}
