@@ -6,13 +6,18 @@
  * release tag (the machine-readable publish state lives in annotated tags
  * named `{channel}/{version}`).
  *
- * This inverts scripts/calculate-version.sh: a version `X.Y.Z.B` means the
- * client's package.json said X.Y.Z, and the add-ons repo had B commits newer
- * than the client's last package.json change at build time.
+ * This inverts the *original* scripts/calculate-version.sh formula: a version
+ * `X.Y.Z.B` means the client's package.json said X.Y.Z, and the add-ons repo
+ * had B commits newer than the client's last package.json change at build
+ * time. Versions built after September 2026 add the client's own commits
+ * since the version bump to B, so they cannot be inverted automatically;
+ * for those, pass the commits explicitly with --client-commit and
+ * --addons-commit (the build's Discord report lists both).
  *
  * Usage:
  *   node scripts/seed-state.js <channel> <version>
- *     [--client-dir client] [--addons-dir addons] [--apply]
+ *     [--client-dir client] [--addons-dir addons]
+ *     [--client-commit <sha> --addons-commit <sha>] [--apply]
  *
  * Example:
  *   node scripts/seed-state.js chrome-stable 4.80.5.1423 \
@@ -100,16 +105,27 @@ function main() {
 	const clientDir = args['client-dir'] || 'client';
 	const addonsDir = args['addons-dir'] || 'addons';
 
-	console.error(`Looking for client commit where package.json version became ${clientVersion}...`);
-	const clientCommit = findClientCommit(clientDir, clientVersion);
-	if ( ! clientCommit )
-		fail(`No commit found in ${clientDir} where package.json has version ${clientVersion}.`);
+	let clientCommit, addonsCommit;
 
-	const timestamp = git(clientDir, ['log', '-1', '--pretty=format:%ct', clientCommit]);
-	console.error(`Client commit: ${clientCommit} (modified at ${timestamp})`);
+	if ( args['client-commit'] || args['addons-commit'] ) {
+		if ( ! args['client-commit'] || ! args['addons-commit'] )
+			fail('--client-commit and --addons-commit must be given together.');
+		clientCommit = git(clientDir, ['rev-parse', '--verify', `${args['client-commit']}^{commit}`]);
+		addonsCommit = git(addonsDir, ['rev-parse', '--verify', `${args['addons-commit']}^{commit}`]);
+		console.error(`Using explicit commits: client ${clientCommit}, add-ons ${addonsCommit}`);
 
-	const addonsCommit = findAddonsCommit(addonsDir, timestamp, build);
-	console.error(`Add-ons commit ${build} since then: ${addonsCommit}`);
+	} else {
+		console.error(`Looking for client commit where package.json version became ${clientVersion}...`);
+		clientCommit = findClientCommit(clientDir, clientVersion);
+		if ( ! clientCommit )
+			fail(`No commit found in ${clientDir} where package.json has version ${clientVersion}.`);
+
+		const timestamp = git(clientDir, ['log', '-1', '--pretty=format:%ct', clientCommit]);
+		console.error(`Client commit: ${clientCommit} (modified at ${timestamp})`);
+
+		addonsCommit = findAddonsCommit(addonsDir, timestamp, build);
+		console.error(`Add-ons commit ${build} since then: ${addonsCommit}`);
+	}
 
 	const metadata = JSON.stringify({
 		version: fullVersion,
