@@ -9,11 +9,17 @@ Licensed under the Apache License, Version 2.0. See LICENSE.
 The build process is intended to be performed using CI via GitHub Actions.
 However, the individual steps can be performed manually should you wish.
 
+For how builds are published to the Chrome Web Store and Firefox Add-Ons
+site, see PUBLISHING.md.
+
 
 Requirements
 ============
 * node 22+
-* pnpm 10+
+* pnpm 10 (the exact version is pinned by `packageManager` in each source
+  tree's package.json; corepack or pnpm itself will select it automatically.
+  pnpm 11 does not read the dependency settings these projects use and will
+  refuse the lockfile.)
 * git
 
 

@@ -1,0 +1,203 @@
+name: Build (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      discord_report:
+        description: Post build success/failure reports to Discord
+        type: boolean
+        default: true
+    outputs:
+      version:
+        description: Full version (FFZ_VERSION.FFZ_BUILD)
+        value: ${{ jobs.build.outputs.version }}
+      client_commit:
+        description: Commit of the main client that was built
+        value: ${{ jobs.build.outputs.client_commit }}
+      addons_commit:
+        description: Commit of the add-ons repo that was built
+        value: ${{ jobs.build.outputs.addons_commit }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      actions: read
+      contents: write
+      attestations: write
+    outputs:
+      version: ${{ steps.outputs.outputs.version }}
+      client_commit: ${{ steps.outputs.outputs.client_commit }}
+      addons_commit: ${{ steps.outputs.outputs.addons_commit }}
+    steps:
+      - name: Checkout Extension Repo
+        uses: actions/checkout@v4
+
+      - name: Uses PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Uses Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Clone FrankerFaceZ Repository
+        run: |
+          git clone https://github.com/FrankerFaceZ/FrankerFaceZ.git client
+
+      - name: Clone Add-Ons Repository
+        run: |
+          git clone https://github.com/FrankerFaceZ/Add-Ons.git addons
+
+      - name: Calculate and Log Version
+        run: |
+          ./scripts/calculate-version.sh
+          cat .env >> $GITHUB_ENV
+
+      - name: Export Version Outputs
+        id: outputs
+        run: |
+          echo "version=$FFZ_VERSION.$FFZ_BUILD" >> $GITHUB_OUTPUT
+          echo "client_commit=$CLIENT_COMMIT" >> $GITHUB_OUTPUT
+          echo "addons_commit=$ADDONS_COMMIT" >> $GITHUB_OUTPUT
+
+      - name: Make a Source Artifact for Firefox
+        id: source-upload-step
+        uses: actions/upload-artifact@v4
+        with:
+          name: source
+          path: |
+            client/*
+            addons/*
+            src/*
+            scripts/*
+            ffz_env
+            README.md
+            build.sh
+
+      # This must happen before `pnpm install` fills the source
+      # checkouts with node_modules and build output.
+      - name: Package Source Archive (for AMO)
+        run: |
+          zip -r frankerfacez-source-$FFZ_VERSION.$FFZ_BUILD.zip \
+            client addons src scripts ffz_env README.md build.sh \
+            -x "client/.git/*" -x "addons/.git/*"
+
+      - name: Upload Source Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-zip
+          path: frankerfacez-source-${{ env.FFZ_VERSION }}.${{ env.FFZ_BUILD }}.zip
+
+      - name: Build the Main Client
+        run: |
+          cd client
+          pnpm install --frozen-lockfile
+          pnpm build:ext
+          cd ..
+
+      - name: Build the Add-Ons Repository
+        run: |
+          cd addons
+          pnpm install --frozen-lockfile
+          pnpm build:ext
+          cd ..
+
+      - name: Copy Build Output
+        run: |
+          ./scripts/copy-output.sh
+
+      - name: Edit Manifest (Insert Version)
+        run: node scripts/update-manifest.js
+
+      - name: Package Extension
+        if: success()
+        run: |
+          cd dist
+          zip -r ../frankerfacez-extension-$FFZ_VERSION.$FFZ_BUILD.zip *
+          cd ..
+
+      - name: Attest Extension
+        if: success()
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: frankerfacez-extension-${{ env.FFZ_VERSION }}.${{ env.FFZ_BUILD }}.zip
+
+      - name: Upload Extension
+        id: artifact-upload-step
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: frankerfacez-extension-${{ env.FFZ_VERSION }}.${{ env.FFZ_BUILD }}.zip
+
+      - name: Now, Nightly
+        if: success()
+        run: |
+          node scripts/nightly-manifest.js
+
+      - name: Package Nightly
+        if: success()
+        run: |
+          cd dist
+          zip -r ../frankerfacez-nightly-$FFZ_VERSION.$FFZ_BUILD.zip *
+          cd ..
+
+      - name: Attest Nightly
+        if: success()
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: frankerfacez-nightly-${{ env.FFZ_VERSION }}.${{ env.FFZ_BUILD }}.zip
+
+      - name: Upload Nightly
+        id: artifact-upload-step-nightly
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly
+          path: frankerfacez-nightly-${{ env.FFZ_VERSION }}.${{ env.FFZ_BUILD }}.zip
+
+      - name: Report Success
+        if: success() && inputs.discord_report
+        uses: tsickert/discord-webhook@v6.0.0
+        with:
+          webhook-url: ${{ secrets.WEBHOOK_URL }}
+          embed-color: 3066993
+          embed-title: ✅ Extension Build Succeeded
+          embed-url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          embed-description: |
+            **Version**: ${{ env.FFZ_VERSION }}.${{ env.FFZ_BUILD }}
+            **Main Client Commit**: [${{ env.CLIENT_COMMIT }}](<https://github.com/FrankerFaceZ/FrankerFaceZ/commit/${{ env.CLIENT_COMMIT }}>)
+            **Add-Ons Commit**: [${{ env.ADDONS_COMMIT }}](<https://github.com/FrankerFaceZ/Add-Ons/commit/${{ env.ADDONS_COMMIT }}>)
+
+            ```
+            ${{ env.LATEST_MESSAGE }}```
+
+            [Download Source](<${{ steps.source-upload-step.outputs.artifact-url }}>)
+            [Download Extension](<${{ steps.artifact-upload-step.outputs.artifact-url }}>)
+            [Download Nightly](<${{ steps.artifact-upload-step-nightly.outputs.artifact-url }}>)
+
+      - name: Report Failure
+        if: failure() && inputs.discord_report
+        uses: tsickert/discord-webhook@v6.0.0
+        with:
+          webhook-url: ${{ secrets.WEBHOOK_URL }}
+          embed-color: 15158332
+          embed-title: ❌ Extension Build Failed
+          embed-url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          embed-description: |
+            **Version**: ${{ env.FFZ_VERSION }}.${{ env.FFZ_BUILD }}
+            **Main Client Commit**: [${{ env.CLIENT_COMMIT }}](<https://github.com/FrankerFaceZ/FrankerFaceZ/commit/${{ env.CLIENT_COMMIT }}>)
+            **Add-Ons Commit**: [${{ env.ADDONS_COMMIT }}](<https://github.com/FrankerFaceZ/Add-Ons/commit/${{ env.ADDONS_COMMIT }}>)
+
+            ```
+            ${{ env.LATEST_MESSAGE }}```
+
+            Please check the logs for details.
+
+            [Download Source](<${{ steps.source-upload-step.outputs.artifact-url }}>)
