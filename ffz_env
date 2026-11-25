@@ -1,10 +1,5 @@
-export CLIENT_COMMIT=ebf0505c87b06db49cb8d5cb702c9edf8710736e
-export FFZ_VERSION=5.1.30
-export ADDONS_COMMIT=0b0c2efe94e80601ac618e23ea0622c42c7ffc4c
+export CLIENT_COMMIT=71a169c46bccb85db73c78feff8abf1d20861cbc
+export FFZ_VERSION=5.1.31
+export ADDONS_COMMIT=1420f929762013982fa1eeda8eecc37a5c68e4dd
 export FFZ_BUILD=1
-export LATEST_MESSAGE="Merge branch 'FrankerFaceZ:master' into master"
-export CLIENT_COMMIT=ebf0505c87b06db49cb8d5cb702c9edf8710736e
-export FFZ_VERSION=5.1.30
-export ADDONS_COMMIT=0b0c2efe94e80601ac618e23ea0622c42c7ffc4c
-export FFZ_BUILD=1
-export LATEST_MESSAGE="Merge branch 'FrankerFaceZ:master' into master"
+export LATEST_MESSAGE="Keep released Lasqamon badges and update 7TV channel packs"
