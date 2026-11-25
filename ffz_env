@@ -1,5 +1,5 @@
-export CLIENT_COMMIT=71a169c46bccb85db73c78feff8abf1d20861cbc
-export FFZ_VERSION=5.1.31
-export ADDONS_COMMIT=1420f929762013982fa1eeda8eecc37a5c68e4dd
+export CLIENT_COMMIT=414a63bdce7c03a0491cb8f55c2f10b86ab7b71d
+export FFZ_VERSION=5.1.32
+export ADDONS_COMMIT=fa3725e888384e6cce9290fd1492aa0e2d6dc89b
 export FFZ_BUILD=1
-export LATEST_MESSAGE="Keep released Lasqamon badges and update 7TV channel packs"
+export LATEST_MESSAGE="Scrollable Lasqamon profiles with health, mana, duel stats and timers"
